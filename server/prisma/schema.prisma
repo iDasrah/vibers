@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id           String        @id @default(cuid(2))
+    spotifyId    String        @unique
+    username     String        @unique
+    bio          String?
+    avatarUrl    String?
+    lastSeen     DateTime      @default(now())
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    ListeningNow ListeningNow?
+    friendOf     Friend[]      @relation("UserFriends")
+    friends      Friend[]      @relation("FriendUsers")
+    Reaction     Reaction[]
+}
+
+model Friend {
+    id        String   @id @default(cuid(2))
+    userId    String
+    friendId  String
+    createdAt DateTime @default(now())
+
+    user   User @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+    friend User @relation("FriendUsers", fields: [friendId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, friendId])
+}
+
+model Track {
+    id           String         @id @default(cuid(2))
+    name         String
+    artist       String
+    imageUrl     String?
+    spotifyUrl   String?
+    ListeningNow ListeningNow[]
+}
+
+model ListeningNow {
+    id        String   @id @default(cuid(2))
+    userId    String
+    trackId   String
+    createdAt DateTime @default(now())
+
+    user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    track    Track      @relation(fields: [trackId], references: [id], onDelete: Cascade)
+    Reaction Reaction[]
+
+    @@unique([userId])
+}
+
+model Reaction {
+    id             String   @id @default(cuid(2))
+    userId         String
+    listeningNowId String
+    emoji          String
+    createdAt      DateTime @default(now())
+
+    user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    listeningNow ListeningNow @relation(fields: [listeningNowId], references: [id], onDelete: Cascade)
+}
