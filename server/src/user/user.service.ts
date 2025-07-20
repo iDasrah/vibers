@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -54,6 +54,8 @@ export class UserService {
     });
   }
 
+  // Friend management operations
+
   getUserFriendsList(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
@@ -73,7 +75,160 @@ export class UserService {
     });
   }
 
-  addFriend(userId: string, friendId: string) {
+  removeFriend(userId: string, friendId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const friend = await prisma.friend.findFirst({
+        where: {
+          userId: userId,
+          friendId: friendId,
+        },
+      });
+
+      if (!friend) {
+        throw new HttpException(
+          'Friend not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await prisma.friend.delete({ where: { id: friend.id } });
+      return prisma.friend.delete({
+        where: {
+          userId_friendId: {
+            userId: friendId,
+            friendId: userId,
+          },
+        },
+      });
+    });
+  }
+
+  getSentFriendRequests(userId: string) {
+    return this.prisma.friendRequest.findMany({
+      where: { fromUserId: userId },
+      select: {
+        id: true,
+        toUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+  }
+
+  getReceivedFriendRequests(userId: string) {
+    return this.prisma.friendRequest.findMany({
+      where: { toUserId: userId },
+      select: {
+        id: true,
+        fromUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+  }
+
+  sendFriendRequest(userId: string, friendId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const existingRequest = await prisma.friendRequest.findFirst({
+        where: {
+          fromUserId: userId,
+          toUserId: friendId,
+        },
+      });
+
+      if (existingRequest) {
+        throw new HttpException(
+          'Friend request already sent',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const existingFriendship = await prisma.friend.findFirst({
+        where: {
+          OR: [
+            { userId: userId, friendId: friendId },
+            { userId: friendId, friendId: userId },
+          ],
+        },
+      });
+
+      if (existingFriendship) {
+        throw new HttpException(
+          'You are already friends with this user',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return prisma.friendRequest.create({
+        data: {
+          fromUserId: userId,
+          toUserId: friendId,
+        },
+      });
+    });
+  }
+
+  cancelFriendRequest(requestId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const request = await prisma.friendRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!request) {
+        throw new HttpException(
+          'Friend request not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return prisma.friendRequest.delete({ where: { id: requestId } });
+    });
+  }
+
+  acceptFriendRequest(requestId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const request = await prisma.friendRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!request) {
+        throw new HttpException(
+          'Friend request not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await prisma.friendRequest.delete({ where: { id: requestId } });
+      return this.addFriend(request.toUserId, request.fromUserId);
+    });
+  }
+
+  rejectFriendRequest(requestId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const request = await prisma.friendRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!request) {
+        throw new HttpException(
+          'Friend request not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return prisma.friendRequest.delete({ where: { id: requestId } });
+    });
+  }
+
+  private addFriend(userId: string, friendId: string) {
     return this.prisma.friend.createManyAndReturn({
       data: [
         {
@@ -85,17 +240,6 @@ export class UserService {
           friendId: userId,
         },
       ],
-    });
-  }
-
-  removeFriend(userId: string, friendId: string) {
-    return this.prisma.friend.deleteMany({
-      where: {
-        OR: [
-          { userId: userId, friendId: friendId },
-          { userId: friendId, friendId: userId },
-        ],
-      },
     });
   }
 }
