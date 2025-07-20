@@ -6,84 +6,96 @@ import {
   Param,
   Post,
   Put,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
+import { JwtAuthGuard } from '../auth/jwt.auth-guard';
+import { User } from '../types';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // CRUD operations for user management
-
-  @Get(':username')
-  getUser(@Param('username') username: string) {
-    return this.userService.getUser(username);
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req: { user: User }) {
+    return this.userService.getUserProfile(req.user.id);
   }
 
-  @Get(':username/profile')
-  getUserProfile(@Param('username') username: string) {
-    return this.userService.getUserProfile(username);
-  }
-
-  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @Put('edit')
   updateUser(
-    @Param('id') userId: string,
+    @Req() req: { user: User },
     @Body()
-    updateUserDto: { username?: string; avatarUrl?: string; bio?: string },
+    updateUserDto: {
+      username?: string;
+      avatarUrl?: string;
+      bio?: string;
+    },
   ) {
-    return this.userService.updateUser(userId, updateUserDto);
+    return this.userService.updateUser(req.user.id, updateUserDto);
   }
 
-  @Delete(':id')
-  deleteUser(@Param('id') userId: string) {
-    return this.userService.deleteUser(userId);
+  @UseGuards(JwtAuthGuard)
+  @Delete('delete')
+  deleteUser(@Req() req: { user: User }) {
+    return this.userService.deleteUser(req.user.id);
   }
 
   // Friend management operations
 
-  @Get(':id/friends')
-  getUserFriendsList(@Param('id') userId: string) {
-    return this.userService.getUserFriendsList(userId);
+  @UseGuards(JwtAuthGuard)
+  @Get('friends')
+  getUserFriendsList(@Req() req: { user: User }) {
+    return this.userService.getUserFriendsList(req.user.id);
   }
 
-  @Get(':id/friends/requests/sent')
-  getSentFriendRequests(@Param('id') userId: string) {
-    return this.userService.getSentFriendRequests(userId);
+  @UseGuards(JwtAuthGuard)
+  @Get('friends/requests/sent')
+  getSentFriendRequests(@Req() req: { user: User }) {
+    return this.userService.getSentFriendRequests(req.user.id);
   }
 
-  @Get(':id/friends/requests/received')
-  getReceivedFriendRequests(@Param('id') userId: string) {
-    return this.userService.getReceivedFriendRequests(userId);
+  @UseGuards(JwtAuthGuard)
+  @Get('friends/requests/received')
+  getReceivedFriendRequests(@Req() req: { user: User }) {
+    return this.userService.getReceivedFriendRequests(req.user.id);
   }
 
-  @Post(':id/friends/requests/:friendId')
+  @UseGuards(JwtAuthGuard)
+  @Post('friends/requests')
   sendFriendRequest(
-    @Param('id') userId: string,
-    @Param('friendId') friendId: string,
+    @Req() req: { user: User },
+    @Body() { friendId }: { friendId: string },
   ) {
-    return this.userService.sendFriendRequest(userId, friendId);
+    return this.userService.sendFriendRequest(req.user.id, friendId);
   }
 
-  @Delete(':id/friends/requests/:requestId')
-  cancelFriendRequest(@Param('requestId') requestId: string) {
+  @UseGuards(JwtAuthGuard)
+  @Delete('friends/requests/:requestId/cancel')
+  cancelFriendRequest(@Param() { requestId }: { requestId: string }) {
     return this.userService.cancelFriendRequest(requestId);
   }
 
-  @Post(':id/friends/requests/:requestId/accept')
-  acceptFriendRequest(@Param('requestId') requestId: string) {
+  @UseGuards(JwtAuthGuard)
+  @Post('friends/requests/:requestId/accept')
+  acceptFriendRequest(@Param() { requestId }: { requestId: string }) {
     return this.userService.acceptFriendRequest(requestId);
   }
 
-  @Delete(':id/friends/requests/:requestId/reject')
-  rejectFriendRequest(@Param('requestId') requestId: string) {
+  @UseGuards(JwtAuthGuard)
+  @Delete('friends/requests/:requestId/reject')
+  rejectFriendRequest(@Param() { requestId }: { requestId: string }) {
     return this.userService.rejectFriendRequest(requestId);
   }
 
-  @Delete(':id/friends/:friendId')
+  @UseGuards(JwtAuthGuard)
+  @Delete('friends/:friendId')
   removeFriend(
-    @Param('id') userId: string,
+    @Req() req: { user: User },
     @Param('friendId') friendId: string,
   ) {
-    return this.userService.removeFriend(userId, friendId);
+    return this.userService.removeFriend(req.user.id, friendId);
   }
 }

@@ -2,11 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
-
-interface User {
-  id: string;
-  username: string;
-}
+import { User } from '../types';
 
 @Injectable()
 export class AuthService {
@@ -29,7 +25,10 @@ export class AuthService {
     return null;
   }
 
-  login(user: User) {
+  login(user: User | undefined) {
+    if (!user) {
+      throw new Error('User not found');
+    }
     const payload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),

@@ -13,9 +13,9 @@ export class UserService {
     });
   }
 
-  getUserProfile(username: string) {
+  getUserProfile(userId: string) {
     return this.prisma.user.findUnique({
-      where: { username: username },
+      where: { id: userId },
       select: {
         username: true,
         avatarUrl: true,
@@ -25,7 +25,7 @@ export class UserService {
     });
   }
 
-  createUser(createUserDto: { username: string, password: string }) {
+  createUser(createUserDto: { username: string; password: string }) {
     return this.prisma.user.create({
       data: {
         username: createUserDto.username,
@@ -140,6 +140,14 @@ export class UserService {
           toUserId: friendId,
         },
       });
+
+      const existingTarget = await prisma.user.findUnique({
+        where: { id: friendId },
+      });
+
+      if (!existingTarget) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
 
       if (existingRequest) {
         throw new HttpException(
