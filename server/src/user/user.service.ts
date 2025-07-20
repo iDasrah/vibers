@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma.service';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
+  // CRUD operations for user management
+
   getUser(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
@@ -27,7 +29,7 @@ export class UserService {
     return this.prisma.user.create({
       data: {
         username: createUserDto.username,
-        spotifyId: '1234567890',
+        spotifyId: createUserDto.username,
       },
     });
   }
@@ -49,6 +51,51 @@ export class UserService {
   deleteUser(userId: string) {
     return this.prisma.user.delete({
       where: { id: userId },
+    });
+  }
+
+  getUserFriendsList(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        friends: {
+          select: {
+            friend: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  addFriend(userId: string, friendId: string) {
+    return this.prisma.friend.createManyAndReturn({
+      data: [
+        {
+          userId: userId,
+          friendId: friendId,
+        },
+        {
+          userId: friendId,
+          friendId: userId,
+        },
+      ],
+    });
+  }
+
+  removeFriend(userId: string, friendId: string) {
+    return this.prisma.friend.deleteMany({
+      where: {
+        OR: [
+          { userId: userId, friendId: friendId },
+          { userId: friendId, friendId: userId },
+        ],
+      },
     });
   }
 }
