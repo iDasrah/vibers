@@ -62,7 +62,50 @@ export class SpotifyService {
     }
   }
 
+  private searchInDb(query: string) {
+    return this.prisma.track.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          {
+            artists: {
+              some: {
+                name: { contains: query, mode: 'insensitive' },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        artists: {
+          select: {
+            name: true,
+          },
+        },
+        imageUrl: true,
+        spotifyUrl: true,
+      },
+      take: 10,
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
+
   async searchTracks(query: string) {
+    const dbResults = await this.searchInDb(query);
+    if (dbResults.length > 0) {
+      return dbResults.map((track) => ({
+        id: track.id,
+        name: track.name,
+        artists: track.artists.map((artist) => ({ name: artist.name })),
+        imageUrl: track.imageUrl,
+        spotifyUrl: track.spotifyUrl,
+      }));
+    }
+
     const accessToken = await this.getAccessToken();
     const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track`;
 
