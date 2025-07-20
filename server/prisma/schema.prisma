@@ -24,9 +24,10 @@ model User {
     createdAt    DateTime      @default(now())
     updatedAt    DateTime      @updatedAt
     ListeningNow ListeningNow?
-    friendOf     Friend[]      @relation("UserFriends")
-    friends      Friend[]      @relation("FriendUsers")
-    Reaction     Reaction[]
+
+    friends  Friend[]   @relation("UserToFriends")
+    addedBy  Friend[]   @relation("FriendOfUser")
+    Reaction Reaction[]
 }
 
 model Friend {
@@ -35,8 +36,8 @@ model Friend {
     friendId  String
     createdAt DateTime @default(now())
 
-    user   User @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
-    friend User @relation("FriendUsers", fields: [friendId], references: [id], onDelete: Cascade)
+    user   User @relation("UserToFriends", fields: [userId], references: [id], onDelete: Cascade)
+    friend User @relation("FriendOfUser", fields: [friendId], references: [id], onDelete: Cascade)
 
     @@unique([userId, friendId])
 }

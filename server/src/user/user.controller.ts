@@ -13,6 +13,8 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  // CRUD operations for user management
+
   @Get(':id')
   getUser(@Param('id') userId: string) {
     return this.userService.getUser(userId);
@@ -40,5 +42,26 @@ export class UserController {
   @Delete(':id')
   deleteUser(@Param('id') userId: string) {
     return this.userService.deleteUser(userId);
+  }
+
+  @Get(':id/friends')
+  getUserFriendsList(@Param('id') userId: string) {
+    return this.userService.getUserFriendsList(userId);
+  }
+
+  @Post(':id/friends')
+  addFriend(
+    @Param('id') userId: string,
+    @Body() friendDto: { friendId: string },
+  ) {
+    return this.userService.addFriend(userId, friendDto.friendId);
+  }
+
+  @Delete(':id/friends/:friendId')
+  removeFriend(
+    @Param('id') userId: string,
+    @Param('friendId') friendId: string,
+  ) {
+    return this.userService.removeFriend(userId, friendId);
   }
 }
