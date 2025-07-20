@@ -62,11 +62,17 @@ model FriendRequest {
 model Track {
     id           String         @id @default(cuid(2))
     name         String
-    artist       String
+    artists      Artist[]
     imageUrl     String?
     spotifyUrl   String?
     ListeningNow ListeningNow[]
     vibes        Vibe[]
+}
+
+model Artist {
+    id     String  @id @default(cuid(2))
+    name   String  @unique
+    tracks Track[]
 }
 
 model Vibe {
@@ -77,6 +83,8 @@ model Vibe {
 
     user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
     track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+    reactions Reaction[]
 
     @@unique([userId, trackId])
 }
@@ -97,10 +105,12 @@ model ListeningNow {
 model Reaction {
     id             String   @id @default(cuid(2))
     userId         String
-    listeningNowId String
+    listeningNowId String?
     emoji          String
     createdAt      DateTime @default(now())
 
-    user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-    listeningNow ListeningNow @relation(fields: [listeningNowId], references: [id], onDelete: Cascade)
+    user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    listeningNow ListeningNow? @relation(fields: [listeningNowId], references: [id], onDelete: Cascade)
+    vibe         Vibe?         @relation(fields: [vibeId], references: [id])
+    vibeId       String?
 }
