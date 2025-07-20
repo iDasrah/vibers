@@ -7,15 +7,15 @@ export class UserService {
 
   // CRUD operations for user management
 
-  getUser(userId: string) {
+  getUser(username: string) {
     return this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { username: username },
     });
   }
 
-  getUserProfile(userId: string) {
+  getUserProfile(username: string) {
     return this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { username: username },
       select: {
         username: true,
         avatarUrl: true,
@@ -25,11 +25,11 @@ export class UserService {
     });
   }
 
-  createUser(createUserDto: { username: string }) {
+  createUser(createUserDto: { username: string, password: string }) {
     return this.prisma.user.create({
       data: {
         username: createUserDto.username,
-        spotifyId: createUserDto.username,
+        password: createUserDto.password,
       },
     });
   }
@@ -85,10 +85,7 @@ export class UserService {
       });
 
       if (!friend) {
-        throw new HttpException(
-          'Friend not found',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Friend not found', HttpStatus.NOT_FOUND);
       }
 
       await prisma.friend.delete({ where: { id: friend.id } });

@@ -15,19 +15,14 @@ export class UserController {
 
   // CRUD operations for user management
 
-  @Get(':id')
-  getUser(@Param('id') userId: string) {
-    return this.userService.getUser(userId);
+  @Get(':username')
+  getUser(@Param('username') username: string) {
+    return this.userService.getUser(username);
   }
 
-  @Get(':id/profile')
-  getUserProfile(@Param('id') userId: string) {
-    return this.userService.getUserProfile(userId);
-  }
-
-  @Post()
-  createUser(@Body() createUserDto: { username: string }) {
-    return this.userService.createUser(createUserDto);
+  @Get(':username/profile')
+  getUserProfile(@Param('username') username: string) {
+    return this.userService.getUserProfile(username);
   }
 
   @Put(':id')
