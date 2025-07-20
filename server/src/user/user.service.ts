@@ -1,5 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -70,7 +72,7 @@ export class UserService {
     });
   }
 
-  createUser(createUserDto: { username: string; password: string }) {
+  createUser(createUserDto: CreateUserDto) {
     return this.prisma.$transaction(async (prisma) => {
       const existingUser = await prisma.user.findUnique({
         where: { username: createUserDto.username },
@@ -94,7 +96,7 @@ export class UserService {
 
   updateUser(
     userId: string,
-    updateUserDto: { username?: string; avatarUrl?: string; bio?: string },
+    updateUserDto: UpdateUserDto,
   ) {
     return this.prisma.$transaction(async (prisma) => {
       const user = await prisma.user.findUnique({ where: { id: userId } });
