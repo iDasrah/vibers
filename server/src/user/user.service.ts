@@ -8,29 +8,87 @@ export class UserService {
   // CRUD operations for user management
 
   getUser(username: string) {
-    return this.prisma.user.findUnique({
-      where: { username: username },
+    return this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: { username: username },
+        select: {
+          id: true,
+          username: true,
+          password: true,
+          avatarUrl: true,
+          bio: true,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return user;
+    });
+  }
+
+  getUserProfileByUsername(username: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: { username: username },
+        select: {
+          id: true,
+          username: true,
+          avatarUrl: true,
+          bio: true,
+          listeningNow: true,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return user;
     });
   }
 
   getUserProfile(userId: string) {
-    return this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        username: true,
-        avatarUrl: true,
-        bio: true,
-        ListeningNow: true,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          username: true,
+          avatarUrl: true,
+          bio: true,
+          listeningNow: true,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return user;
     });
   }
 
   createUser(createUserDto: { username: string; password: string }) {
-    return this.prisma.user.create({
-      data: {
-        username: createUserDto.username,
-        password: createUserDto.password,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const existingUser = await prisma.user.findUnique({
+        where: { username: createUserDto.username },
+      });
+
+      if (existingUser) {
+        throw new HttpException(
+          'Username already exists',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return prisma.user.create({
+        data: {
+          username: createUserDto.username,
+          password: createUserDto.password,
+        },
+      });
     });
   }
 
@@ -38,40 +96,54 @@ export class UserService {
     userId: string,
     updateUserDto: { username?: string; avatarUrl?: string; bio?: string },
   ) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        username: updateUserDto.username,
-        avatarUrl: updateUserDto.avatarUrl,
-        bio: updateUserDto.bio,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return prisma.user.update({
+        where: { id: userId },
+        data: {
+          username: updateUserDto.username ?? user.username,
+          avatarUrl: updateUserDto.avatarUrl ?? user.avatarUrl,
+          bio: updateUserDto.bio ?? user.bio,
+        },
+      });
     });
   }
 
   deleteUser(userId: string) {
-    return this.prisma.user.delete({
-      where: { id: userId },
+    return this.prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return prisma.user.delete({ where: { id: userId } });
     });
   }
 
   // Friend management operations
 
   getUserFriendsList(userId: string) {
-    return this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        friends: {
-          select: {
-            friend: {
-              select: {
-                id: true,
-                username: true,
-                avatarUrl: true,
-              },
+    return this.prisma.$transaction(async (prisma) => {
+      const friends = await prisma.friend.findMany({
+        where: { userId: userId },
+        select: {
+          friend: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
             },
           },
         },
-      },
+      });
+
+      return friends.map((f) => f.friend);
     });
   }
 

@@ -15,6 +15,11 @@ import { User } from '../types';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get(':username/profile')
+  getUserProfile(@Param('username') username: string) {
+    return this.userService.getUserProfileByUsername(username);
+  }
+
   @Get('profile')
   getProfile(@Req() req: { user: User }) {
     return this.userService.getUserProfile(req.user.id);

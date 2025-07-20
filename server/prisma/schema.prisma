@@ -23,7 +23,7 @@ model User {
     lastSeen     DateTime      @default(now())
     createdAt    DateTime      @default(now())
     updatedAt    DateTime      @updatedAt
-    ListeningNow ListeningNow?
+    listeningNow ListeningNow?
 
     friends Friend[] @relation("UserToFriends")
     addedBy Friend[] @relation("FriendOfUser")
@@ -31,7 +31,8 @@ model User {
     sentRequests     FriendRequest[] @relation("FriendRequestFrom")
     receivedRequests FriendRequest[] @relation("FriendRequestTo")
 
-    Reaction Reaction[]
+    reactions Reaction[]
+    vibes     Vibe[]
 }
 
 model Friend {
@@ -65,6 +66,19 @@ model Track {
     imageUrl     String?
     spotifyUrl   String?
     ListeningNow ListeningNow[]
+    vibes        Vibe[]
+}
+
+model Vibe {
+    id        String   @id @default(cuid(2))
+    userId    String
+    trackId   String
+    createdAt DateTime @default(now())
+
+    user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, trackId])
 }
 
 model ListeningNow {
@@ -73,9 +87,9 @@ model ListeningNow {
     trackId   String
     createdAt DateTime @default(now())
 
-    user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-    track    Track      @relation(fields: [trackId], references: [id], onDelete: Cascade)
-    Reaction Reaction[]
+    user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    track     Track      @relation(fields: [trackId], references: [id], onDelete: Cascade)
+    reactions Reaction[]
 
     @@unique([userId])
 }
