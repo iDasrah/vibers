@@ -1,8 +1,10 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { SpotifyResponse, SpotifySearchResponse } from '../types';
+import { SpotifyResponse, SpotifySearchResponse, SpotifyTrack } from '../types';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class SpotifyService {
+  constructor(private prisma: PrismaService) {}
   private accessToken: string | null = null;
   private tokenExpiration: number | null = null;
 
@@ -51,7 +53,7 @@ export class SpotifyService {
       const data = (await response.json()) as SpotifyResponse;
 
       this.accessToken = data.access_token;
-      this.tokenExpiration = Date.now() + (data.expires_in - 5) * 1000;
+      this.tokenExpiration = Date.now() + (data.expires_in - 30) * 1000;
 
       return data.access_token;
     } catch (error) {
@@ -79,10 +81,45 @@ export class SpotifyService {
       }
 
       const data = (await response.json()) as SpotifySearchResponse;
-      return data.tracks.items;
+      const tracks = data.tracks.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        artists: item.artists.map((artist) => ({ name: artist.name })),
+        album: {
+          images: item.album.images,
+        },
+        external_urls: item.external_urls,
+        preview_url: item.preview_url || null,
+      }));
+      await this.saveTracksToDb(tracks);
+      return tracks;
     } catch (error) {
       console.error('Error searching tracks on Spotify:', error);
       throw new HttpException('Error searching tracks on Spotify', 500);
     }
+  }
+
+  saveTracksToDb(tracks: SpotifyTrack[]) {
+    return this.prisma.$transaction(async (prisma) => {
+      const trackPromises = tracks.map((track) =>
+        prisma.track.upsert({
+          where: { id: track.id },
+          update: {},
+          create: {
+            name: track.name,
+            artists: {
+              connectOrCreate: track.artists.map((artist) => ({
+                where: { name: artist.name },
+                create: { name: artist.name },
+              })),
+            },
+            imageUrl: track.album.images[0]?.url || null,
+            spotifyUrl: track.external_urls.spotify,
+          },
+        }),
+      );
+
+      return Promise.all(trackPromises);
+    });
   }
 }
