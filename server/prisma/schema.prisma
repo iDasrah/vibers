@@ -25,8 +25,12 @@ model User {
     updatedAt    DateTime      @updatedAt
     ListeningNow ListeningNow?
 
-    friends  Friend[]   @relation("UserToFriends")
-    addedBy  Friend[]   @relation("FriendOfUser")
+    friends Friend[] @relation("UserToFriends")
+    addedBy Friend[] @relation("FriendOfUser")
+
+    sentRequests     FriendRequest[] @relation("FriendRequestFrom")
+    receivedRequests FriendRequest[] @relation("FriendRequestTo")
+
     Reaction Reaction[]
 }
 
@@ -40,6 +44,18 @@ model Friend {
     friend User @relation("FriendOfUser", fields: [friendId], references: [id], onDelete: Cascade)
 
     @@unique([userId, friendId])
+}
+
+model FriendRequest {
+    id         String   @id @default(cuid(2))
+    fromUserId String
+    toUserId   String
+    createdAt  DateTime @default(now())
+
+    fromUser User @relation("FriendRequestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+    toUser   User @relation("FriendRequestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+    @@unique([fromUserId, toUserId])
 }
 
 model Track {
